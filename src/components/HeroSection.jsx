@@ -1,6 +1,6 @@
 import heroImage from "../assets/images/hero-image.jpg.jpg";
 
-function HeroSection() {
+export function HeroSection() {
   return (
     <section className="flex flex-1 w-full justify-center items-center px-8 py-16 bg-[#fafaf9]">
       <div className="w-full max-w-7xl grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
@@ -42,5 +42,3 @@ function HeroSection() {
     </section>
   )
 }
-
-export default HeroSection

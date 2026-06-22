@@ -1,4 +1,4 @@
-function Navbar() {
+export function Navbar() {
   return (
     <nav className="flex w-full items-center justify-between px-8 py-4 bg-[#f8f9fa] border-b border-gray-200">
       
@@ -20,5 +20,3 @@ function Navbar() {
     </nav>
   )
 }
-
-export default Navbar
