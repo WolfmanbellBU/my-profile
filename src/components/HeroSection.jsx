@@ -4,7 +4,7 @@ export function HeroSection() {
   return (
     <section className="flex flex-1 w-full justify-center items-center px-8 py-16 bg-[#fafaf9]">
       <div className="w-full max-w-7xl grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
-        <div className="text-right flex flex-col justify-center">
+        <div className="flex flex-col items-center justify-center text-center md:items-end md:text-right">
           <h1 className="text-4xl md:text-5xl font-bold !text-black leading-tight mb-4">
             Stay <br />
             Informed, <br />
