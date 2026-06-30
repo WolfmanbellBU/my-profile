@@ -1,11 +1,6 @@
-function BlogCard({
-  image = "https://res.cloudinary.com/dcbpjtd1r/image/upload/v1728449771/my-blog-post/e739huvlalbfz9eynysc.jpg",
-  category = "Cat",
-  title = "Understanding Cat Behavior: Why Your Feline Friend Acts the Way They Do",
-  description = "Dive into the curious world of cat behavior, exploring why cats knead, purr, and chase imaginary prey. This article helps pet owners decode their feline's actions and understand how their instincts as hunters shape their daily routines.",
-  author = "Thompson P.",
-  date = "11 September 2024",
-}) {
+import { blogPosts } from "@/data/blogPosts";
+
+function BlogCard({ image, category, title, description, author, date }) {
   return (
     <div className="flex flex-col gap-4">
       <a href="#" className="relative h-[212px] sm:h-[360px]">
@@ -21,8 +16,8 @@ function BlogCard({
             {category}
           </span>
         </div>
-        <a href="#">
-          <h2 className="text-start font-bold text-xl mb-2 line-clamp-2 hover:underline">
+        <a href="#" className="text-black no-underline">
+          <h2 className="text-start font-bold text-xl mb-2 line-clamp-2 hover:underline !text-black">
             {title}
           </h2>
         </a>
@@ -44,4 +39,19 @@ function BlogCard({
   );
 }
 
+function BlogCardList({ posts = blogPosts }) {
+  return posts.map((post) => (
+    <BlogCard
+      key={post.id}
+      image={post.image}
+      category={post.category}
+      title={post.title}
+      description={post.description}
+      author={post.author}
+      date={post.date}
+    />
+  ));
+}
+
 export default BlogCard;
+export { BlogCardList };
