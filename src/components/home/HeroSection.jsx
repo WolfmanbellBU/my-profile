@@ -1,4 +1,4 @@
-import heroImage from "../assets/images/hero-image.jpg.jpg";
+import heroImage from "@/assets/images/hero-image.jpg.jpg"
 
 export function HeroSection() {
   return (

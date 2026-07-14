@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom"
 import { Linkedin, Github, Chrome } from "lucide-react"
 
 function SocialIcon({ href, label, children }) {
@@ -32,12 +33,12 @@ export function Footer() {
           </div>
         </div>
 
-        <a
-          href="#"
-          className="text-base text-[#404040] underline underline-offset-2 hover:text-black transition-colors"
+        <Link
+          to="/"
+          className="text-base text-[#404040] underline underline-offset-2 transition-colors hover:text-black"
         >
           Home page
-        </a>
+        </Link>
       </div>
     </footer>
   )
