@@ -1,29 +1,89 @@
 import axios from "axios"
 import { ENDPOINTS } from "@/config/api"
+import {
+  localGetUser,
+  localLogin,
+  localRegister,
+  localResetPassword,
+  localUpdateProfile,
+} from "@/services/localAuthStore"
 
-export async function registerUser({ name, username, email, password }) {
-  const response = await axios.post(ENDPOINTS.auth.register, {
-    name,
-    username,
-    email,
-    password,
-  })
-  return response.data
+function isRemoteUnavailable(error) {
+  if (!error.response) return true
+  if (error.response.status >= 500) return true
+  const message = error.response.data?.error
+  return (
+    message === "fetch failed" ||
+    message === "An error occurred during registration"
+  )
 }
 
-export async function loginUser({ email, password }) {
-  const response = await axios.post(ENDPOINTS.auth.login, {
-    email,
-    password,
-  })
-  return response.data
+export async function registerUser(payload) {
+  try {
+    const response = await axios.post(ENDPOINTS.auth.register, payload)
+    return response.data
+  } catch (error) {
+    if (!isRemoteUnavailable(error)) throw error
+    return localRegister(payload)
+  }
+}
+
+export async function loginUser(payload) {
+  try {
+    const response = await axios.post(ENDPOINTS.auth.login, payload)
+    return response.data
+  } catch (error) {
+    if (!isRemoteUnavailable(error)) throw error
+    return localLogin(payload)
+  }
 }
 
 export async function fetchCurrentUser(accessToken) {
-  const response = await axios.get(ENDPOINTS.auth.getUser, {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  })
-  return response.data
+  if (accessToken?.startsWith("local.")) return localGetUser(accessToken)
+
+  try {
+    const response = await axios.get(ENDPOINTS.auth.getUser, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+    return response.data
+  } catch (error) {
+    if (!isRemoteUnavailable(error)) throw error
+    return localGetUser(accessToken)
+  }
+}
+
+export async function updateUserProfile(accessToken, profile) {
+  try {
+    const response = await axios.put(ENDPOINTS.auth.updateProfile, profile, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+    return response.data
+  } catch (error) {
+    if (
+      accessToken?.startsWith("local.") ||
+      isRemoteUnavailable(error) ||
+      error.response?.status === 404
+    ) {
+      return localUpdateProfile(accessToken, profile)
+    }
+    throw error
+  }
+}
+
+export async function resetUserPassword(accessToken, passwords) {
+  try {
+    const response = await axios.put(ENDPOINTS.auth.resetPassword, passwords, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+    return response.data
+  } catch (error) {
+    if (
+      accessToken?.startsWith("local.") ||
+      isRemoteUnavailable(error) ||
+      error.response?.status === 404
+    ) {
+      return localResetPassword(accessToken, passwords)
+    }
+    throw error
+  }
 }

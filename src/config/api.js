@@ -1,10 +1,13 @@
-const API_BASE_URL = "https://blog-post-project-api.vercel.app"
+const POSTS_API_BASE_URL = "https://blog-post-project-api.vercel.app"
+const AUTH_API_BASE_URL = "https://blog-post-project-api-with-db.vercel.app"
 
 export const ENDPOINTS = {
-  posts: `${API_BASE_URL}/posts`,
+  posts: `${POSTS_API_BASE_URL}/posts`,
   auth: {
-    register: `${API_BASE_URL}/auth/register`,
-    login: `${API_BASE_URL}/auth/login`,
-    getUser: `${API_BASE_URL}/auth/get-user`,
+    register: `${AUTH_API_BASE_URL}/auth/register`,
+    login: `${AUTH_API_BASE_URL}/auth/login`,
+    getUser: `${AUTH_API_BASE_URL}/auth/get-user`,
+    updateProfile: `${AUTH_API_BASE_URL}/auth/update-profile`,
+    resetPassword: `${AUTH_API_BASE_URL}/auth/reset-password`,
   },
 }

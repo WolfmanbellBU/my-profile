@@ -1,5 +1,9 @@
 import { createContext, useContext, useMemo, useState } from "react"
-import { fetchCurrentUser } from "@/services/authService"
+import {
+  fetchCurrentUser,
+  resetUserPassword,
+  updateUserProfile,
+} from "@/services/authService"
 
 const AuthContext = createContext(null)
 
@@ -30,6 +34,15 @@ export function AuthProvider({ children }) {
         localStorage.removeItem("user")
         setAccessToken(null)
         setUser(null)
+      },
+      updateProfile: async (profile) => {
+        const updatedUser = await updateUserProfile(accessToken, profile)
+        localStorage.setItem("user", JSON.stringify(updatedUser))
+        setUser(updatedUser)
+        return updatedUser
+      },
+      resetPassword: async (passwords) => {
+        return resetUserPassword(accessToken, passwords)
       },
     }),
     [user, accessToken]
