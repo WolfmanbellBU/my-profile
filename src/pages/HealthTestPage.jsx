@@ -14,8 +14,10 @@ const HealthTestPage = () => {
     setLoading(true);
 
     try {
-      const res = await axios.get(`${API_BASE_URL}/health`);
-      setResult(res.data);
+      const response = await axios.get(
+        `${API_BASE_URL || "https://backend-express-server.vercel.app"}/health`
+      );
+      setResult(response.data);
     } catch (err) {
       setError({
         status: err.response?.status,
