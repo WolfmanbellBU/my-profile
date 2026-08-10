@@ -29,6 +29,11 @@ import {
   updateArticle,
 } from "@/services/admin/articleStore"
 import { getCategories } from "@/services/admin/categoryStore"
+import {
+  createPostWithImage,
+  POST_STATUS,
+  validateImageFile,
+} from "@/services/postApiService"
 
 const INTRO_MAX = 120
 
@@ -41,14 +46,16 @@ export function ArticleFormPage() {
   const categories = useMemo(() => getCategories(), [])
   const existing = isEdit ? getArticleById(articleId) : null
 
-  const [form, setForm] = useState({
+  const [post, setPost] = useState({
     title: existing?.title ?? "",
-    category: existing?.category ?? "",
-    introduction: existing?.introduction ?? "",
+    description: existing?.introduction ?? "",
     content: existing?.content ?? "",
-    image: existing?.image ?? "",
+    category_id: null,
+    status_id: null,
   })
-  const [isSaving, setIsSaving] = useState(false)
+  const [imageFile, setImageFile] = useState(null)
+  const [imagePreview, setImagePreview] = useState(existing?.image ?? "")
+  const [isLoading, setIsLoading] = useState(false)
   const [showDelete, setShowDelete] = useState(false)
 
   if (isEdit && !existing) {
@@ -62,74 +69,131 @@ export function ArticleFormPage() {
     )
   }
 
-  function handleChange(event) {
+  function handleInputChange(event) {
     const { name, value } = event.target
-    setForm((prev) => ({
+    setPost((prev) => ({
       ...prev,
-      [name]: name === "introduction" ? value.slice(0, INTRO_MAX) : value,
+      [name]: name === "description" ? value.slice(0, INTRO_MAX) : value,
+    }))
+  }
+
+  function handleCategoryChange(value) {
+    setPost((prev) => ({
+      ...prev,
+      category_id: Number(value),
     }))
   }
 
   function handleFileChange(event) {
     const file = event.target.files?.[0]
+    const errorMessage = validateImageFile(file)
+
     if (!file) return
-    const reader = new FileReader()
-    reader.onload = () => {
-      setForm((prev) => ({ ...prev, image: String(reader.result) }))
+
+    if (errorMessage) {
+      toast.error(errorMessage)
+      event.target.value = ""
+      return
     }
-    reader.readAsDataURL(file)
+
+    setImageFile({ file })
+    setImagePreview(URL.createObjectURL(file))
   }
 
-  function validateForm() {
+  function validateForm(requireImage) {
     if (
-      !form.title.trim() ||
-      !form.category ||
-      !form.introduction.trim() ||
-      !form.content.trim()
+      !post.title.trim() ||
+      !post.category_id ||
+      !post.description.trim() ||
+      !post.content.trim()
     ) {
       toast.error("Please fill in all required fields")
       return false
     }
+
+    if (requireImage && !imageFile && !imagePreview) {
+      toast.error("Please select an image file.")
+      return false
+    }
+
     return true
   }
 
   async function handleSave(status) {
-    if (!validateForm()) return
-    setIsSaving(true)
+    const statusId = POST_STATUS[status]
+    if (!validateForm(!isEdit)) return
+
+    setIsLoading(true)
 
     try {
-      const payload = {
-        ...form,
-        status,
-        author: user?.name || user?.username || "Thompson P.",
-        authorId: user?.id ?? null,
-      }
-
       if (isEdit) {
-        updateArticle(articleId, payload)
+        const categoryName =
+          categories.find((item, index) => index + 1 === post.category_id)
+            ?.name || existing.category
+
+        updateArticle(articleId, {
+          title: post.title,
+          category: categoryName,
+          introduction: post.description,
+          content: post.content,
+          image: imagePreview,
+          status,
+          author: user?.name || user?.username || "Thompson P.",
+          authorId: user?.id ?? null,
+        })
+
         toast.success("Article updated", {
           description:
             status === "published"
               ? "Your article has been successfully published"
               : "Your article has been saved as draft",
         })
-      } else if (status === "draft") {
-        createArticle(payload)
-        toast.success("Create article and saved as draft", {
-          description: "You can publish article later",
-        })
       } else {
-        createArticle(payload)
-        toast.success("Create article and published", {
-          description: "Your article has been successfully published",
+        const formData = new FormData()
+        formData.append("title", post.title)
+        formData.append("category_id", post.category_id)
+        formData.append("description", post.description)
+        formData.append("content", post.content)
+        formData.append("status_id", statusId)
+        formData.append("imageFile", imageFile.file)
+
+        await createPostWithImage(formData)
+
+        // เก็บในรายการ admin ท้องถิ่นด้วย เพื่อให้เห็นใน Article management ทันที
+        createArticle({
+          title: post.title,
+          category:
+            categories.find((item, index) => index + 1 === post.category_id)
+              ?.name || "General",
+          introduction: post.description,
+          content: post.content,
+          image: imagePreview,
+          status,
+          author: user?.name || user?.username || "Thompson P.",
+          authorId: user?.id ?? null,
         })
+
+        if (status === "draft") {
+          toast.success("Create article and saved as draft", {
+            description: "You can publish article later",
+          })
+        } else {
+          toast.success("Create article and published", {
+            description: "Your article has been successfully published",
+          })
+        }
       }
 
       navigate(`/admin/articles?status=${status}`)
     } catch (error) {
-      toast.error(error.response?.data?.error ?? "Failed to save article")
+      console.error("Error creating post:", error)
+      toast.error(
+        error.response?.data?.message ||
+          error.response?.data?.error ||
+          "Failed to create post. Please try again."
+      )
     } finally {
-      setIsSaving(false)
+      setIsLoading(false)
     }
   }
 
@@ -154,7 +218,7 @@ export function ArticleFormPage() {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            disabled={isSaving}
+            disabled={isLoading}
             onClick={() => handleSave("draft")}
             className="rounded-full border border-gray-800 bg-white px-5 py-2.5 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-50 disabled:opacity-60"
           >
@@ -162,7 +226,7 @@ export function ArticleFormPage() {
           </button>
           <button
             type="button"
-            disabled={isSaving}
+            disabled={isLoading}
             onClick={() => handleSave("published")}
             className="rounded-full bg-[#2b2a2a] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-black disabled:opacity-60"
           >
@@ -179,15 +243,15 @@ export function ArticleFormPage() {
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept="image/jpeg,image/png,image/gif,image/webp"
             className="hidden"
             onChange={handleFileChange}
           />
           <div className="flex items-center gap-4">
-            {form.image ? (
+            {imagePreview ? (
               <img
-                src={form.image}
-                alt=""
+                src={imagePreview}
+                alt="Preview"
                 className="h-36 w-56 rounded-xl object-cover"
               />
             ) : (
@@ -208,17 +272,15 @@ export function ArticleFormPage() {
         <div className="mb-5 flex flex-col gap-2">
           <label className="text-sm font-medium text-gray-700">Category</label>
           <Select
-            value={form.category || undefined}
-            onValueChange={(value) =>
-              setForm((prev) => ({ ...prev, category: value }))
-            }
+            value={post.category_id ? String(post.category_id) : undefined}
+            onValueChange={handleCategoryChange}
           >
             <SelectTrigger className="h-12 w-full rounded-xl border-gray-300 bg-white px-4">
               <SelectValue placeholder="Select category" />
             </SelectTrigger>
             <SelectContent>
-              {categories.map((item) => (
-                <SelectItem key={item.id} value={item.name}>
+              {categories.map((item, index) => (
+                <SelectItem key={item.id} value={String(index + 1)}>
                   {item.name}
                 </SelectItem>
               ))}
@@ -242,8 +304,8 @@ export function ArticleFormPage() {
           <Input
             id="title"
             name="title"
-            value={form.title}
-            onChange={handleChange}
+            value={post.title}
+            onChange={handleInputChange}
             placeholder="Article title"
             className="h-12 rounded-xl border-gray-300 bg-white px-4"
           />
@@ -251,16 +313,16 @@ export function ArticleFormPage() {
 
         <div className="mb-5 flex flex-col gap-2">
           <label
-            htmlFor="introduction"
+            htmlFor="description"
             className="text-sm font-medium text-gray-700"
           >
             Introduction (max {INTRO_MAX} letters)
           </label>
           <Textarea
-            id="introduction"
-            name="introduction"
-            value={form.introduction}
-            onChange={handleChange}
+            id="description"
+            name="description"
+            value={post.description}
+            onChange={handleInputChange}
             maxLength={INTRO_MAX}
             placeholder="Introduction"
             className="min-h-24 rounded-xl border-gray-300 bg-white px-4 py-3"
@@ -274,8 +336,8 @@ export function ArticleFormPage() {
           <Textarea
             id="content"
             name="content"
-            value={form.content}
-            onChange={handleChange}
+            value={post.content}
+            onChange={handleInputChange}
             placeholder="Content"
             className="min-h-72 rounded-xl border-gray-300 bg-white px-4 py-3"
           />
