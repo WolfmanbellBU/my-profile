@@ -107,7 +107,7 @@ export function createArticle(payload) {
   const articles = readArticles()
   const now = new Date().toISOString()
   const article = {
-    id: crypto.randomUUID(),
+    id: payload.id != null ? String(payload.id) : crypto.randomUUID(),
     title: payload.title.trim(),
     category: payload.category,
     introduction: (payload.introduction ?? "").trim().slice(0, 120),

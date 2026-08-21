@@ -31,6 +31,7 @@ import {
 import { getCategories } from "@/services/admin/categoryStore"
 import {
   createPostWithImage,
+  updatePost,
   POST_STATUS,
   validateImageFile,
 } from "@/services/postApiService"
@@ -131,6 +132,21 @@ export function ArticleFormPage() {
           categories.find((item, index) => index + 1 === post.category_id)
             ?.name || existing.category
 
+        const imageUrl = imagePreview?.startsWith("http")
+          ? imagePreview
+          : existing.image
+
+        if (/^\d+$/.test(String(articleId))) {
+          await updatePost(articleId, {
+            title: post.title,
+            image: imageUrl,
+            category_id: post.category_id,
+            description: post.description,
+            content: post.content,
+            status_id: statusId,
+          })
+        }
+
         updateArticle(articleId, {
           title: post.title,
           category: categoryName,
@@ -157,10 +173,11 @@ export function ArticleFormPage() {
         formData.append("status_id", statusId)
         formData.append("imageFile", imageFile.file)
 
-        await createPostWithImage(formData)
+        const created = await createPostWithImage(formData)
 
         // เก็บในรายการ admin ท้องถิ่นด้วย เพื่อให้เห็นใน Article management ทันที
         createArticle({
+          id: created.id,
           title: post.title,
           category:
             categories.find((item, index) => index + 1 === post.category_id)

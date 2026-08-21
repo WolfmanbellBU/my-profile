@@ -18,6 +18,18 @@ export async function createPostWithImage(formData) {
   return response.data
 }
 
+export async function updatePost(postId, payload) {
+  const token = localStorage.getItem("access_token")
+
+  const response = await axios.put(`${ENDPOINTS.posts}/${postId}`, payload, {
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  })
+
+  return response.data
+}
+
 export const POST_STATUS = {
   draft: 1,
   published: 2,
